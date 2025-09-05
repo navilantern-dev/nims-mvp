@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <title>NIMS Login</title>
+
+    <style>
+      /* Page layout */
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        background: #f6f7f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Stack the logo above the card with spacing */
+      .stack {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        width: min(92vw, 560px);
+      }
+
+      /* Logo constraints */
+      .logo {
+        display: block;
+        max-width: 360px;
+        max-height: 100px;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      /* Card (form) */
+      .card {
+        background: #fff;
+        width: 100%;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 6px 18px rgba(0,0,0,.08);
+      }
+
+      h1 { font-size: 20px; margin: 0 0 16px; }
+      label { display: block; margin: 12px 0 6px; font-size: 12px; color: #444; }
+
+      .field { position: relative; }               /* wrapper for input + toggle */
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d0d7de;
+        border-radius: 10px;
+        font-size: 14px;
+        background: #fff;
+      }
+
+      /* Show/Hide password button */
+      .toggle {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 0;
+        background: transparent;
+        font-size: 12px;
+        color: #111827;
+        padding: 4px 6px;
+        cursor: pointer;
+        border-radius: 6px;
+      }
+      .toggle:focus { outline: 2px solid #a3a3a3; outline-offset: 2px; }
+
+      button[type="submit"] {
+        width: 100%;
+        margin-top: 16px;
+        padding: 10px 12px;
+        border: 0;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        background: #111827;
+        color: #fff;
+      }
+      button[disabled] { opacity: .6; cursor: not-allowed; }
+
+      .msg { margin-top: 12px; font-size: 13px; min-height: 18px; color: #b91c1c; }
+      .muted { color: #6b7280; font-size: 12px; text-align: center; margin-top: 10px; }
+    </style>
+  </head>
+
+  <body>
+    <div class="stack">
+      <!-- Unescaped output for data URL -->
+      <img class="logo" src="<?!= logoSrc ?>" alt="NAVILANTERN">
+
+      <div class="card">
+        <h1>Sign in</h1>
+        <form id="frm" autocomplete="on">
+          <label for="username">Username</label>
+          <div class="field">
+            <input id="username" name="username" autocomplete="username" required>
+          </div>
+
+          <label for="password">Password</label>
+          <div class="field">
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+            <button id="togglePwd"
+                    class="toggle"
+                    type="button"
+                    aria-label="Show password"
+                    aria-pressed="false">Show</button>
+          </div>
+
+          <button id="btn" type="submit">Sign in</button>
+          <div id="msg" class="msg"></div>
+        </form>
+        <div class="muted">Inventory Management System owned by <strong>Navilantern</strong>.</div>
+      </div>
+    </div>
+
+    <script>
+      const $ = s => document.querySelector(s);
+
+      // Show/Hide password
+      (function setupPwdToggle(){
+        const input = $('#password');
+        const btn = $('#togglePwd');
+        btn.addEventListener('click', () => {
+          const hidden = input.type === 'password';
+          input.type = hidden ? 'text' : 'password';
+          btn.textContent = hidden ? 'Hide' : 'Show';
+          btn.setAttribute('aria-pressed', String(hidden));
+          btn.setAttribute('aria-label', hidden ? 'Hide password' : 'Show password');
+        });
+      })();
+
+      // Submit → authenticate → render dashboard
+      $('#frm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        $('#btn').disabled = true;
+        $('#msg').textContent = 'Checking...';
+
+        const payload = {
+          username: $('#username').value.trim(),
+          password: $('#password').value
+        };
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            $('#btn').disabled = false;
+            if (!res || !res.ok) {
+              $('#msg').textContent = (res && res.message) || 'Login failed.';
+              return;
+            }
+            document.cookie = 'ams_session=' + res.token + '; path=/';
+            google.script.run
+              .withSuccessHandler((html) => {
+                document.open(); document.write(html); document.close();
+              })
+              .renderDashboard(res.token);
+          })
+          .withFailureHandler(err => {
+            $('#btn').disabled = false;
+            $('#msg').textContent = 'Error: ' + (err && err.message ? err.message : 'Unknown');
+          })
+          .authenticate(payload);
+      });
+
+      // Enter on password submits the form
+      $('#password').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') $('#frm').dispatchEvent(new Event('submit', {cancelable:true}));
+      });
+    </script>
+  </body>
+</html>

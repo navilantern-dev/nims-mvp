@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <title>Dashboard</title>
+    <style>
+      body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:0; background:#f9fafb; }
+      header { background:#111827; color:#fff; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; }
+      main { padding:24px; display:grid; gap:16px; max-width:900px; margin:0 auto; }
+      .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#e5e7eb; margin-left:8px; font-size:12px; color:#111827; }
+      .card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,.06); }
+      button { border:0; background:#111827; color:#fff; padding:8px 10px; border-radius:8px; cursor:pointer; }
+      .muted { color:#6b7280; font-size:12px; }
+      pre { white-space:pre-wrap; word-break:break-word; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <strong>Welcome, <?= user.username ?></strong>
+        <span class="pill">Level: <?= levelText ?></span>
+        <span class="pill">Group: <?= groupText ?></span>
+      </div>
+      <div><button onclick="logout()">Logout</button></div>
+    </header>
+
+    <main>
+      <div class="card">
+        <h3>Everyone</h3>
+        <p class="muted">You are logged in. Your basic user block goes here.</p>
+      </div>
+
+      <? if (user.user_level <= 1) { ?>
+      <div class="card">
+        <h3>Admin Area (level ≤ 1)</h3>
+        <p class="muted">Visible to Admins and Superusers.</p>
+        <button onclick="callAdmin()">Run adminAction()</button>
+        <pre id="adminOut"></pre>
+      </div>
+      <? } ?>
+
+      <? if (user.user_level === 0) { ?>
+      <div class="card">
+        <h3>Superuser Area (level = 0)</h3>
+        <p class="muted">Visible to Superusers only.</p>
+        <button onclick="callSuper()">Run superAction()</button>
+        <pre id="superOut"></pre>
+      </div>
+      <? } ?>
+    </main>
+
+    <script>
+      const token = '<?= token ?>';
+  function logout(){
+    google.script.run.withSuccessHandler(() => {
+      document.cookie = 'ams_session=; Max-Age=0; path=/';
+      // Render the login screen directly (no reload)
+      google.script.run.withSuccessHandler((html) => {
+        document.open(); document.write(html); document.close();
+      }).renderLogin();
+    }).logout(token);
+  }
+
+      function callAdmin(){
+        google.script.run.withSuccessHandler((res)=>{
+          document.getElementById('adminOut').textContent = JSON.stringify(res, null, 2);
+        }).withFailureHandler(err=>{
+          document.getElementById('adminOut').textContent = 'ERR: ' + err.message;
+        }).adminAction(token);
+      }
+
+      function callSuper(){
+        google.script.run.withSuccessHandler((res)=>{
+          document.getElementById('superOut').textContent = JSON.stringify(res, null, 2);
+        }).withFailureHandler(err=>{
+          document.getElementById('superOut').textContent = 'ERR: ' + err.message;
+        }).superAction(token);
+      }
+    </script>
+  </body>
+</html>

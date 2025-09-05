@@ -4,12 +4,19 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'src/**'       # adjust to your folder
+      - 'src/**'            # ⬅️ adjust to your folder path
       - '.github/workflows/deploy-gas.yml'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    # Map secrets to env so we can use them in conditions
+    env:
+      SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+      DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}   # optional
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -22,15 +29,17 @@ jobs:
 
       - name: Configure clasp auth and project binding
         run: |
-          echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
-          echo '{"scriptId":"'"${{ secrets.SCRIPT_ID }}"'","rootDir":"./src"}' > .clasp.json
+          echo "$CLASPRC_JSON" > ~/.clasprc.json
+          echo '{"scriptId":"'"$SCRIPT_ID"'","rootDir":"./src"}' > .clasp.json
           cat .clasp.json
 
+      # If your .clasp.json + src/ are inside a subfolder (e.g., gas-login),
+      # add: working-directory: gas-login   to the next two steps.
       - name: Push code to Apps Script (HEAD)
         run: npx @google/clasp push -f
 
-      - name: Update existing deployment (keeps same Web App URL)
-        if: ${{ secrets.DEPLOYMENT_ID != '' }}
+      - name: Version & update existing deployment (keeps same URL)
+        if: ${{ env.DEPLOYMENT_ID != '' }}
         run: |
           npx @google/clasp version "CI $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          npx @google/clasp deploy --deploymentId "${{ secrets.DEPLOYMENT_ID }}" --description "CI deploy"
+          npx @google/clasp deploy --deploymentId "$DEPLOYMENT_ID" --description "CI deploy"

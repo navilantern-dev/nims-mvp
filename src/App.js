@@ -12,7 +12,7 @@ function doGet() {
   try {
     const t = HtmlService.createTemplateFromFile('login');
     t.logoSrc = getLogoDataUrl_();           // embed logo privately
-    return t.evaluate().setTitle('AMS Login');
+    return t.evaluate().setTitle('NIMS Login');
   } catch (err) {
     return HtmlService.createHtmlOutput('<h3>doGet error</h3><pre>' + (err.message || err) + '</pre>');
   }
@@ -23,7 +23,7 @@ function renderLogin() {
   try {
     const t = HtmlService.createTemplateFromFile('login');
     t.logoSrc = getLogoDataUrl_();
-    return t.evaluate().setTitle('AMS Login').getContent();
+    return t.evaluate().setTitle('NIMS Login').getContent();
   } catch (e) {
     return '<h3>Login render error</h3><pre>' + (e.message || e) + '</pre>';
   }
@@ -80,7 +80,7 @@ function renderDashboard(token) {
   t.levelText = ['Superuser','Admin','User'][user.user_level] || 'User';
   t.groupText = ['Client','Staff'][user.user_group] || 'Client';
   t.token = token;
-  return t.evaluate().setTitle('AMS Dashboard').getContent();
+  return t.evaluate().setTitle('NIMS Dashboard').getContent();
 }
 
 // ====== PROTECTED API EXAMPLES (optional) ======
